@@ -1,0 +1,38 @@
+model Delivery {
+    id         String @id @default(uuid())
+    trackingId String @unique
+
+    senderName    String
+    senderPhone   String
+    senderAddress String
+
+    receiverName    String
+    receiverPhone   String
+    receiverAddress String
+
+    parcelType   String
+    parcelWeight Float?
+    deliveryFee  Float
+
+    status DeliveryStatus @default(PENDING)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    customerId String
+    customer   User   @relation("CustomerDeliveries", fields: [customerId], references: [id])
+
+    deliveryAgentId String?
+    deliveryAgent   User?   @relation("AgentDeliveries", fields: [deliveryAgentId], references: [id])
+
+    statusHistory DeliveryStatusHistory[]
+    payment       Payment?
+
+    @@index([customerId])
+    @@index([deliveryAgentId])
+    @@index([status])
+    @@index([trackingId])
+    @@index([createdAt])
+    @@map("deliveries")
+}

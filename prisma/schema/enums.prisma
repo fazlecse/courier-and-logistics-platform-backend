@@ -1,0 +1,36 @@
+enum UserRole {
+  CUSTOMER
+  DELIVERY_AGENT
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  ACCEPTED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+enum PaymentMethod {
+  STRIPE
+  BKASH
+  SSLCOMMERZ
+}
+
