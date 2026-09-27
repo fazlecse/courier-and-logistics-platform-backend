@@ -6,6 +6,7 @@ import { globalErrorHandler } from './middleware/globalErrorHandler'
 import { notFound } from './middleware/notFound'
 import { AuthRoutes } from './module/auth/auth.route'
 import config from './config'
+import helmet from 'helmet'
 
 const app: Application = express()
 
@@ -20,6 +21,7 @@ app.use(
 app.use(express.urlencoded({ extended: true }))
 
 // Middleware to parse JSON bodies
+app.use(helmet());
 app.use(express.json())
 app.use(cookieParser())
 

@@ -11,7 +11,7 @@ import {
 } from './auth.interface'
 
 
-const registerPatient = async (payload: IRegisterUserPayload) => {
+const register = async (payload: IRegisterUserPayload) => {
     const { name, password, phone } = payload
     const email = payload.email.trim().toLowerCase()
 
@@ -177,7 +177,7 @@ const refreshToken = async (token: string) => {
 
 
 export const AuthService = {
-    registerPatient,
+    register,
     loginUser,
     getMe,
     refreshToken

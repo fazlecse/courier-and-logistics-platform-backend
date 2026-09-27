@@ -7,7 +7,7 @@ import { loginValidationSchema, registerValidationSchema } from './auth.validati
 
 const router = Router()
 
-router.post('/register', validateRequest(registerValidationSchema), AuthController.registerPatient)
+router.post('/register', validateRequest(registerValidationSchema), AuthController.register)
 router.post('/login', validateRequest(loginValidationSchema), AuthController.loginUser)
 router.get(
     '/me',
