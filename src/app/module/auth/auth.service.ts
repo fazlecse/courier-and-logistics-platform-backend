@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs"
 import { JwtPayload, SignOptions } from 'jsonwebtoken'
 import config from '../../config'
 import { prisma, UserRole, UserStatus } from '../../lib/prisma'
-import { AppError } from '../../utils/AppError'
+import { AppError } from "../../utils/AppError"
 import { jwtUtils } from '../../utils/jwt'
 import {
     ILoginUserPayload,
