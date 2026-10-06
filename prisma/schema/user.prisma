@@ -1,0 +1,26 @@
+model User {
+  id       String     @id @default(uuid())
+  name     String
+  email    String     @unique
+  googleId String?    @unique
+  avatar   String?
+  password String?
+  phone    String?
+  role     UserRole   @default(CUSTOMER)
+  status   UserStatus @default(ACTIVE)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  isDeleted Boolean   @default(false)
+
+  deliveriesAsCustomer Delivery[] @relation("CustomerDeliveries")
+  deliveriesAsAgent    Delivery[] @relation("AgentDeliveries")
+
+  auditLogs AuditLog[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}

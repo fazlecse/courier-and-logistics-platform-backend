@@ -1,0 +1,17 @@
+model DeliveryStatusHistory {
+    id String @id @default(uuid())
+
+    status      DeliveryStatus
+    changedById String?
+
+    note String?
+
+    createdAt DateTime @default(now())
+
+    deliveryId String
+    delivery   Delivery @relation(fields: [deliveryId], references: [id])
+
+    @@index([deliveryId])
+    @@index([status])
+    @@map("deliveryStatusHistories")
+}
