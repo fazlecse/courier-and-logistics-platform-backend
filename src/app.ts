@@ -9,6 +9,7 @@ import { globalErrorHandler } from './app/middleware/globalErrorHandler'
 import { notFound } from './app/middleware/notFound'
 import { AuthRoutes } from './app/module/auth/auth.route'
 import { DeliveryRoutes } from './app/module/delivery/delivery.route'
+import { PaymentRoutes } from './app/module/payment/payment.route'
 import { UserRoutes } from './app/module/user/user.route'
 
 const app: Application = express()
@@ -40,14 +41,21 @@ app.use(
 // URL-encoded form data parsing
 app.use(express.urlencoded({ extended: true }))
 
-// JSON body parser
-app.use(express.json())
+// JSON body parser (capturing rawBody for Stripe webhook signature verification)
+app.use(
+    express.json({
+        verify: (req: any, _res, buf) => {
+            req.rawBody = buf;
+        },
+    }),
+)
 app.use(cookieParser())
 
 // API Routes
 app.use('/api/v1/auth', AuthRoutes)
 app.use('/api/v1/users', UserRoutes)
 app.use('/api/v1/deliveries', DeliveryRoutes)
+app.use('/api/v1/payments', PaymentRoutes)
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
