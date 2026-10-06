@@ -7,6 +7,7 @@ import httpStatus from 'http-status'
 import config from './app/config'
 import { globalErrorHandler } from './app/middleware/globalErrorHandler'
 import { notFound } from './app/middleware/notFound'
+import { AdminRoutes } from './app/module/admin/admin.route'
 import { AuthRoutes } from './app/module/auth/auth.route'
 import { DeliveryRoutes } from './app/module/delivery/delivery.route'
 import { PaymentRoutes } from './app/module/payment/payment.route'
@@ -56,6 +57,7 @@ app.use('/api/v1/auth', AuthRoutes)
 app.use('/api/v1/users', UserRoutes)
 app.use('/api/v1/deliveries', DeliveryRoutes)
 app.use('/api/v1/payments', PaymentRoutes)
+app.use('/api/v1/admin', AdminRoutes)
 
 // Health check
 app.get('/health', (_req: Request, res: Response) => {
