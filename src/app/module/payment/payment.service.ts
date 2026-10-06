@@ -20,6 +20,13 @@ const initiatePayment = async (
     userRole: UserRole,
     payload: IInitiatePaymentPayload,
 ) => {
+    if (!config.stripe_secret_key) {
+        throw new AppError(
+            500,
+            'Stripe payment gateway is not configured. Please set STRIPE_SECRET_KEY in your .env file.',
+        );
+    }
+
     const delivery = await prisma.delivery.findUnique({
         where: { id: payload.deliveryId },
         include: { payment: true },
@@ -41,55 +48,41 @@ const initiatePayment = async (
         throw new AppError(400, 'This delivery has already been paid for');
     }
 
-    let session: { id: string; url: string | null } = null as any;
+    let session: Stripe.Checkout.Session;
 
-    const hasRealStripeKey =
-        config.stripe_secret_key &&
-        !config.stripe_secret_key.includes('mock') &&
-        !config.stripe_secret_key.includes('placeholder');
-
-    if (hasRealStripeKey) {
-        try {
-            session = await stripe.checkout.sessions.create({
-                line_items: [
-                    {
-                        price_data: {
-                            currency: 'usd',
-                            product_data: {
-                                name: `Delivery Fee (${delivery.trackingId})`,
-                                description: `Parcel Type: ${delivery.parcelType} | Sender: ${delivery.senderName}`,
-                            },
-                            unit_amount: Math.max(100, Math.round((delivery.deliveryFee / 110) * 100)),
+    try {
+        session = await stripe.checkout.sessions.create({
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: `Delivery Fee (${delivery.trackingId})`,
+                            description: `Parcel: ${delivery.parcelType} | Sender: ${delivery.senderName} | Receiver: ${delivery.receiverName}`,
                         },
-                        quantity: 1,
+                        unit_amount: Math.max(100, Math.round((delivery.deliveryFee / 110) * 100)),
                     },
-                ],
-                mode: 'payment',
-                success_url: `${config.frontend_url}/payment/success?session_id={CHECKOUT_SESSION_ID}&trackingId=${delivery.trackingId}`,
-                cancel_url: `${config.frontend_url}/payment/cancel?deliveryId=${delivery.id}`,
-                metadata: {
-                    deliveryId: delivery.id,
-                    userId,
-                    trackingId: delivery.trackingId,
+                    quantity: 1,
                 },
-            });
-        } catch (err: any) {
-            throw new AppError(500, `Stripe session creation failed: ${err.message}`);
-        }
-    } else {
-        // Safe development simulation for testing endpoints before adding production key
-        const mockSessionId = `cs_test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        session = {
-            id: mockSessionId,
-            url: `https://checkout.stripe.com/pay/${mockSessionId}`,
-        };
+            ],
+            mode: 'payment',
+            success_url: `${config.frontend_url}/payment/success?session_id={CHECKOUT_SESSION_ID}&trackingId=${delivery.trackingId}`,
+            cancel_url: `${config.frontend_url}/payment/cancel?deliveryId=${delivery.id}`,
+            metadata: {
+                deliveryId: delivery.id,
+                userId,
+                trackingId: delivery.trackingId,
+            },
+        });
+    } catch (err: any) {
+        throw new AppError(500, `Stripe payment session creation failed: ${err.message}`);
     }
 
     const payment = await prisma.payment.upsert({
         where: { deliveryId: delivery.id },
         update: {
             amount: delivery.deliveryFee,
-            currency: 'BDT',
+            currency: 'USD',
             method: PaymentMethod.STRIPE,
             status: PaymentStatus.PENDING,
             sessionId: session.id,
@@ -98,7 +91,7 @@ const initiatePayment = async (
         create: {
             deliveryId: delivery.id,
             amount: delivery.deliveryFee,
-            currency: 'BDT',
+            currency: 'USD',
             method: PaymentMethod.STRIPE,
             status: PaymentStatus.PENDING,
             sessionId: session.id,
@@ -125,6 +118,13 @@ const initiatePayment = async (
 };
 
 const verifyPayment = async (sessionId: string) => {
+    if (!config.stripe_secret_key) {
+        throw new AppError(
+            500,
+            'Stripe payment gateway is not configured. Please set STRIPE_SECRET_KEY in your .env file.',
+        );
+    }
+
     const payment = await prisma.payment.findUnique({
         where: { sessionId },
         include: { delivery: true },
@@ -138,43 +138,21 @@ const verifyPayment = async (sessionId: string) => {
         return payment;
     }
 
-    const hasRealStripeKey =
-        config.stripe_secret_key &&
-        !config.stripe_secret_key.includes('mock') &&
-        !config.stripe_secret_key.includes('placeholder');
-
-    if (!hasRealStripeKey || sessionId.startsWith('cs_test_')) {
-        const updated = await prisma.payment.update({
-            where: { sessionId },
-            data: {
-                status: PaymentStatus.PAID,
-                paidAt: new Date(),
-                transactionId: `pi_test_${Date.now()}`,
-            },
-            include: { delivery: true },
-        });
-
-        await createAuditLog({
-            userId: payment.delivery.customerId,
-            action: 'PAYMENT_VERIFIED_SUCCESS',
-            entity: 'Payment',
-            entityId: updated.id,
-            description: `Payment marked PAID via test verification for tracking: ${updated.delivery.trackingId}`,
-        });
-
-        return updated;
-    }
-
     try {
         const session = await stripe.checkout.sessions.retrieve(sessionId);
 
         if (session.payment_status === 'paid') {
+            const transactionId =
+                typeof session.payment_intent === 'string'
+                    ? session.payment_intent
+                    : session.id;
+
             const updated = await prisma.payment.update({
                 where: { sessionId },
                 data: {
                     status: PaymentStatus.PAID,
                     paidAt: new Date(),
-                    transactionId: (session.payment_intent as string) || session.id,
+                    transactionId,
                 },
                 include: { delivery: true },
             });
@@ -184,7 +162,7 @@ const verifyPayment = async (sessionId: string) => {
                 action: 'PAYMENT_VERIFIED_SUCCESS',
                 entity: 'Payment',
                 entityId: updated.id,
-                description: `Payment marked PAID via verification for tracking: ${updated.delivery.trackingId}`,
+                description: `Payment confirmed PAID via Stripe verification for tracking: ${updated.delivery.trackingId}`,
             });
 
             return updated;
@@ -200,20 +178,27 @@ const verifyPayment = async (sessionId: string) => {
 };
 
 const handleWebhook = async (payload: Buffer | any, signature?: string) => {
+    if (!config.stripe_webhook_secret) {
+        throw new AppError(
+            500,
+            'STRIPE_WEBHOOK_SECRET is not configured in .env file',
+        );
+    }
+
+    if (!signature) {
+        throw new AppError(400, 'Missing stripe-signature header');
+    }
+
     let event: Stripe.Event;
 
     try {
-        if (config.stripe_webhook_secret && signature) {
-            event = stripe.webhooks.constructEvent(
-                payload,
-                signature,
-                config.stripe_webhook_secret,
-            );
-        } else {
-            event = payload;
-        }
+        event = stripe.webhooks.constructEvent(
+            payload,
+            signature,
+            config.stripe_webhook_secret,
+        );
     } catch (err: any) {
-        throw new AppError(400, `Webhook Error: ${err.message}`);
+        throw new AppError(400, `Stripe Webhook Signature Verification Failed: ${err.message}`);
     }
 
     if (event.type === 'checkout.session.completed') {
@@ -226,12 +211,17 @@ const handleWebhook = async (payload: Buffer | any, signature?: string) => {
         });
 
         if (payment && payment.status !== PaymentStatus.PAID) {
+            const transactionId =
+                typeof session.payment_intent === 'string'
+                    ? session.payment_intent
+                    : session.id;
+
             await prisma.payment.update({
                 where: { sessionId },
                 data: {
                     status: PaymentStatus.PAID,
                     paidAt: new Date(),
-                    transactionId: (session.payment_intent as string) || session.id,
+                    transactionId,
                 },
             });
 
@@ -240,7 +230,7 @@ const handleWebhook = async (payload: Buffer | any, signature?: string) => {
                 action: 'STRIPE_WEBHOOK_PAYMENT_PAID',
                 entity: 'Payment',
                 entityId: payment.id,
-                description: `Payment marked PAID via Stripe webhook for tracking: ${payment.delivery.trackingId}`,
+                description: `Payment marked PAID via verified Stripe webhook for tracking: ${payment.delivery.trackingId}`,
             });
         }
     } else if (event.type === 'payment_intent.payment_failed') {
@@ -347,6 +337,13 @@ const refundPayment = async (
     adminId: string,
     payload: IRefundPaymentPayload,
 ) => {
+    if (!config.stripe_secret_key) {
+        throw new AppError(
+            500,
+            'Stripe payment gateway is not configured. Please set STRIPE_SECRET_KEY in your .env file.',
+        );
+    }
+
     const payment = await prisma.payment.findUnique({
         where: { id: paymentId },
         include: { delivery: true },
@@ -363,16 +360,18 @@ const refundPayment = async (
         );
     }
 
-    // Call Stripe refund if transactionId exists
-    if (payment.transactionId && !payment.transactionId.startsWith('mock_')) {
-        try {
-            await stripe.refunds.create({
-                payment_intent: payment.transactionId,
-                reason: 'requested_by_customer',
-            });
-        } catch (error: any) {
-            console.warn('Stripe refund API call warning:', error.message);
-        }
+    if (!payment.transactionId) {
+        throw new AppError(400, 'Cannot refund payment without a valid transaction ID from Stripe');
+    }
+
+    // Call real Stripe Refund API
+    try {
+        await stripe.refunds.create({
+            payment_intent: payment.transactionId,
+            reason: 'requested_by_customer',
+        });
+    } catch (error: any) {
+        throw new AppError(500, `Stripe refund failed: ${error.message}`);
     }
 
     const updated = await prisma.payment.update({
