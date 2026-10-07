@@ -1,0 +1,532 @@
+{
+  "info": {
+    "_postman_id": "b7a6-courier-logistics-platform-api",
+    "name": "Courier & Logistics Platform API (B7A6)",
+    "description": "Comprehensive Postman Collection covering all endpoints for the Courier & Logistics Platform Backend.\n\n### 3 Defined Roles:\n- **CUSTOMER**: Can book parcels, track shipments, update pending orders, and pay online via Stripe.\n- **DELIVERY_AGENT**: Can view assigned deliveries and progress the delivery status lifecycle.\n- **ADMIN**: Can manage users, assign delivery agents, view platform metrics, view audit logs, and refund payments.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5002", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "agentToken", "value": "", "type": "string" },
+    { "key": "customerToken", "value": "", "type": "string" },
+    { "key": "deliveryId", "value": "", "type": "string" },
+    { "key": "trackingId", "value": "TRK-DEMO-001", "type": "string" },
+    { "key": "sessionId", "value": "", "type": "string" },
+    { "key": "paymentId", "value": "", "type": "string" },
+    { "key": "agentId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01. Authentication",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Customer\",\n  \"email\": \"new_customer@example.com\",\n  \"password\": \"Customer@123\",\n  \"phone\": \"+8801811223344\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login - Admin (Save Admin Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('adminToken', res.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@courier.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - Delivery Agent (Save Agent Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('agentToken', res.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"agent@courier.com\",\n  \"password\": \"Agent@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login - Customer (Save Customer Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('customerToken', res.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@courier.com\",\n  \"password\": \"Customer@123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "login"] }
+          }
+        },
+        {
+          "name": "Login with Google (GCP OAuth)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"demo_google_id_token\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/google", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "google"] }
+          }
+        },
+        {
+          "name": "Get Current User Profile (/me)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "me"] }
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "refresh-token"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "v1", "auth", "logout"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. User Profile",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Customer Updated\",\n  \"phone\": \"+8801799887766\",\n  \"avatar\": \"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "me"] }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"Customer@123\",\n  \"newPassword\": \"Customer@456\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/users/me/password", "host": ["{{baseUrl}}"], "path": ["api", "v1", "users", "me", "password"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Deliveries (Core Logistics)",
+      "item": [
+        {
+          "name": "Book Parcel Delivery (Save Delivery ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data) {",
+                  "    pm.collectionVariables.set('deliveryId', res.data.id);",
+                  "    pm.collectionVariables.set('trackingId', res.data.trackingId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senderName\": \"Demo Customer\",\n  \"senderPhone\": \"+8801700000003\",\n  \"senderAddress\": \"House 12, Dhanmondi, Dhaka\",\n  \"receiverName\": \"Anisul Huq\",\n  \"receiverPhone\": \"+8801822334455\",\n  \"receiverAddress\": \"GEC Circle, Chittagong\",\n  \"parcelType\": \"Electronics\",\n  \"parcelWeight\": 2.5,\n  \"expressDelivery\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries"] }
+          }
+        },
+        {
+          "name": "List Deliveries (Paginated & Filterable)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deliveries?page=1&limit=10&status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "deliveries"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "PENDING" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Deliveries (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deliveries?page=1&limit=10&search=Chittagong&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "deliveries"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "Chittagong" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Public Track Parcel by Tracking ID",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/track/{{trackingId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "track", "{{trackingId}}"] }
+          }
+        },
+        {
+          "name": "Get Single Delivery Details",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}"] }
+          }
+        },
+        {
+          "name": "Update Pending Delivery",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiverAddress\": \"Agrabad Commercial Area, Chittagong\",\n  \"parcelWeight\": 3.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}"] }
+          }
+        },
+        {
+          "name": "Assign Delivery Agent (Admin Only)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryAgentId\": \"{{agentId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}/assign", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}", "assign"] }
+          }
+        },
+        {
+          "name": "Update Delivery Status Workflow (Agent/Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACCEPTED\",\n  \"note\": \"Delivery accepted by agent\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}", "status"] }
+          }
+        },
+        {
+          "name": "Get Delivery Status History Timeline",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}/history", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}", "history"] }
+          }
+        },
+        {
+          "name": "Cancel Delivery",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Recipient is not available\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}", "cancel"] }
+          }
+        },
+        {
+          "name": "Soft Delete Delivery",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/deliveries/{{deliveryId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "deliveries", "{{deliveryId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Payments (Stripe)",
+      "item": [
+        {
+          "name": "Initiate Stripe Checkout Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data) {",
+                  "    pm.collectionVariables.set('sessionId', res.data.sessionId);",
+                  "    pm.collectionVariables.set('paymentId', res.data.paymentId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryId\": \"{{deliveryId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/initiate", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "initiate"] }
+          }
+        },
+        {
+          "name": "Verify Stripe Payment Session",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/verify/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "verify", "{{sessionId}}"] }
+          }
+        },
+        {
+          "name": "Get Single Payment Details",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{customerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "{{paymentId}}"] }
+          }
+        },
+        {
+          "name": "List All Payments (Admin Only)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments?page=1&limit=10&status=PAID",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "PAID" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Stripe Webhook Handler",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "stripe-signature", "value": "t=123456,v1=demo_signature" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_demo_test\",\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"{{sessionId}}\",\n      \"payment_status\": \"paid\",\n      \"payment_intent\": \"pi_demo_test\"\n    }\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/webhook", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "webhook"] }
+          }
+        },
+        {
+          "name": "Refund Payment (Admin Only)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Damaged goods upon delivery inspection\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/payments/{{paymentId}}/refund", "host": ["{{baseUrl}}"], "path": ["api", "v1", "payments", "{{paymentId}}", "refund"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Admin Operations",
+      "item": [
+        {
+          "name": "Dashboard Statistics & Metrics",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/dashboard-stats", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "dashboard-stats"] }
+          }
+        },
+        {
+          "name": "List Users (Paginated & Filterable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.length > 0) {",
+                  "    const agent = res.data.find(u => u.role === 'DELIVERY_AGENT');",
+                  "    if (agent) pm.collectionVariables.set('agentId', agent.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users?page=1&limit=10&role=DELIVERY_AGENT",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "role", "value": "DELIVERY_AGENT" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"DELIVERY_AGENT\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{agentId}}/role", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "users", "{{agentId}}", "role"] }
+          }
+        },
+        {
+          "name": "Change User Status (Block/Unblock)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{agentId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "users", "{{agentId}}", "status"] }
+          }
+        },
+        {
+          "name": "System Audit Logs (Paginated)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/audit-logs?page=1&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "audit-logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "15" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. System & Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          }
+        },
+        {
+          "name": "Root API Info",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+          }
+        }
+      ]
+    }
+  ]
+}
