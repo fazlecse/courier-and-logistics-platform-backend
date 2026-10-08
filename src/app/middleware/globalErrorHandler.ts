@@ -12,9 +12,9 @@ export const globalErrorHandler = async (
     res: Response,
     _next: NextFunction,
 ) => {
-    if (config.node_env === 'development') {
+    // if (config.node_env === 'development') {
         console.error('Error from Global Error Handler:', err);
-    }
+    // }
 
     let statusCode: number = httpStatus.INTERNAL_SERVER_ERROR;
     let errorMessage: string = 'Internal Server Error';
