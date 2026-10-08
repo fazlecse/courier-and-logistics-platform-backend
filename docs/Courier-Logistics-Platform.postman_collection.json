@@ -10,11 +10,11 @@
     { "key": "adminToken", "value": "", "type": "string" },
     { "key": "agentToken", "value": "", "type": "string" },
     { "key": "customerToken", "value": "", "type": "string" },
-    { "key": "deliveryId", "value": "", "type": "string" },
+    { "key": "deliveryId", "value": "8b132776-1330-43ba-a124-6ec6e1b9d729", "type": "string" },
     { "key": "trackingId", "value": "TRK-DEMO-001", "type": "string" },
     { "key": "sessionId", "value": "", "type": "string" },
-    { "key": "paymentId", "value": "", "type": "string" },
-    { "key": "agentId", "value": "", "type": "string" }
+    { "key": "paymentId", "value": "d50e60c9-47ce-4e29-bf03-77e33715f946", "type": "string" },
+    { "key": "agentId", "value": "eed8440f-7b16-4e89-a4c8-0503bd0fd246", "type": "string" }
   ],
   "item": [
     {
@@ -68,6 +68,12 @@
                   "const res = pm.response.json();",
                   "if (res.success && res.data && res.data.accessToken) {",
                   "    pm.collectionVariables.set('agentToken', res.data.accessToken);",
+                  "    try {",
+                  "        const payload = JSON.parse(atob(res.data.accessToken.split('.')[1]));",
+                  "        if (payload.userId) {",
+                  "            pm.collectionVariables.set('agentId', payload.userId);",
+                  "        }",
+                  "    } catch (e) {}",
                   "}"
                 ],
                 "type": "text/javascript"
