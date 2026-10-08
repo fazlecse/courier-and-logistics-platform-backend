@@ -20,7 +20,8 @@ const initiatePayment = async (
     userRole: UserRole,
     payload: IInitiatePaymentPayload,
 ) => {
-    if (!config.stripe_secret_key) {
+    const stripeKey = config.stripe_secret_key || process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
         throw new AppError(
             500,
             'Stripe payment gateway is not configured. Please set STRIPE_SECRET_KEY in your .env file.',
@@ -118,7 +119,8 @@ const initiatePayment = async (
 };
 
 const verifyPayment = async (sessionId: string) => {
-    if (!config.stripe_secret_key) {
+    const stripeKey = config.stripe_secret_key || process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
         throw new AppError(
             500,
             'Stripe payment gateway is not configured. Please set STRIPE_SECRET_KEY in your .env file.',
@@ -337,7 +339,8 @@ const refundPayment = async (
     adminId: string,
     payload: IRefundPaymentPayload,
 ) => {
-    if (!config.stripe_secret_key) {
+    const stripeKey = config.stripe_secret_key || process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
         throw new AppError(
             500,
             'Stripe payment gateway is not configured. Please set STRIPE_SECRET_KEY in your .env file.',
