@@ -2,6 +2,9 @@
 
 A robust, scalable, and secure RESTful API for a Courier & Logistics Platform. Built with Node.js, TypeScript, Express.js, Prisma, and PostgreSQL. Supports user authentication (Email/Password + Google OAuth), parcel delivery operations, role-based access control, Stripe payment integration, and comprehensive admin management.
 
+🌐 **Live Production API**: [https://courier-and-logistics-server.vercel.app](https://courier-and-logistics-server.vercel.app)  
+🩺 **Health Check Endpoint**: [https://courier-and-logistics-server.vercel.app/health](https://courier-and-logistics-server.vercel.app/health)
+
 ## Project Overview
 
 The platform manages delivery operations where:
@@ -19,7 +22,7 @@ The platform manages delivery operations where:
 | Authentication | JWT (Access + Refresh tokens), Google OAuth |
 | Payments | Stripe (Checkout Sessions + Webhooks) |
 | Security | Helmet, CORS, bcryptjs, express-rate-limit |
-| Deployment | Render |
+| Deployment | Vercel (Production Serverless), Render |
 
 ## Project Structure
 
@@ -235,6 +238,12 @@ CANCELLED  CANCELLED  CANCELLED
 7. On DELIVERY → status DELIVERED
 
 ## Deployment
+
+### Vercel (Current Production Deployment)
+
+- **Production Live URL**: [https://courier-and-logistics-server.vercel.app](https://courier-and-logistics-server.vercel.app)
+- **Health Check**: [https://courier-and-logistics-server.vercel.app/health](https://courier-and-logistics-server.vercel.app/health)
+- Deployed via Vercel CLI / Git integration with zero-config serverless rewrites (`api/index.ts`).
 
 ### Render
 
